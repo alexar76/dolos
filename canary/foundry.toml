@@ -1,0 +1,14 @@
+[profile.default]
+src = "src"
+test = "test"
+out = "out"
+# Reuse the monorepo's vendored forge-std + OZ rather than vendoring our own (the lottery
+# project does the same). Paths are relative to this project dir (dolos/canary).
+libs = ["../../contracts/evm/lib"]
+solc = "0.8.28"
+optimizer = true
+optimizer_runs = 200
+remappings = [
+    "forge-std/=../../contracts/evm/lib/forge-std/src/",
+    "@openzeppelin/contracts/=../../contracts/evm/lib/openzeppelin-contracts/contracts/",
+]

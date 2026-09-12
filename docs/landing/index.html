@@ -1,0 +1,437 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>DOLOS — the exploit crafter</title>
+<meta name="description" content="A dynamic EVM attack harness for the UNI bubble: forks the chain, proves which flaws are real, and drives a fix to a re-tested redeploy — sandbox only." />
+<link rel="canonical" href="https://dolos.modelmarket.dev/" />
+<meta property="og:title" content="DOLOS — the exploit crafter" />
+<meta property="og:description" content="Attack anything, risk nothing: every exploit lands on a throwaway fork, never the live chain." />
+<meta name="theme-color" content="#0a0b0f" />
+<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin />
+<link href="fonts/fonts.css" rel="stylesheet" />
+<script type="importmap">
+{"imports":{
+  "three":"https://cdn.jsdelivr.net/npm/three@0.185.0/build/three.module.js",
+  "three/addons/":"https://cdn.jsdelivr.net/npm/three@0.185.0/examples/jsm/"
+}}
+</script>
+<style>
+  :root{
+    --bg:#0a0b0f; --bg2:#12131a; --ink:#e7e9ee; --dim:#9aa3b2; --line:#232634;
+    --crimson:#e5484d; --gold:#e8c36a; --green:#00ff88; --violet:#8d83ff;
+    --mono:"JetBrains Mono",ui-monospace,monospace; --sans:"Inter",system-ui,sans-serif;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:
+      radial-gradient(60vw 44vw at 78% -6%,rgba(229,72,77,.16),transparent 58%),
+      radial-gradient(44vw 34vw at 4% 88%,rgba(0,255,136,.05),transparent 52%),
+      linear-gradient(168deg,#0b070a,#0f1016 52%,var(--bg));
+    color:var(--ink);font-family:var(--sans);line-height:1.6;-webkit-font-smoothing:antialiased}
+  a{color:var(--crimson);text-decoration:none}
+  .wrap{max-width:1120px;margin:0 auto;padding:0 22px}
+  header{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;
+    padding:22px 0;border-bottom:1px solid var(--line)}
+  .brand{display:flex;align-items:center;gap:12px;font-weight:800;letter-spacing:.5px}
+  .mark{width:30px;height:30px;border-radius:7px;background:
+    conic-gradient(from 210deg,var(--crimson),#7a1f26 55%,var(--crimson));
+    box-shadow:0 0 22px #e5484d66;position:relative;overflow:hidden}
+  .mark::after{content:"";position:absolute;inset:0;background:
+    linear-gradient(115deg,transparent 46%,#0a0b0f 47%,#0a0b0f 53%,transparent 54%)}
+  .langs{display:flex;gap:2px;font-family:var(--mono);font-size:12px}
+  .langs button{background:none;border:1px solid var(--line);color:var(--dim);padding:5px 8px;
+    border-radius:6px;cursor:pointer;transition:.15s}
+  .langs button.active,.langs button:hover{color:#000;background:var(--crimson);border-color:var(--crimson);font-weight:700}
+
+  /* ── hero ───────────────────────────────────────────────────────────────── */
+  .hero{display:grid;grid-template-columns:minmax(0,.92fr) minmax(400px,1.08fr);
+    gap:clamp(18px,3.4vw,40px);align-items:center;padding:44px 0 40px;min-height:560px}
+  .kicker{font:600 11px/1 var(--mono);letter-spacing:.22em;text-transform:uppercase;
+    color:var(--crimson);margin:0 0 14px}
+  .hero h1{font-size:clamp(38px,6vw,64px);margin:0 0 6px;font-weight:800;letter-spacing:-1.5px;line-height:1}
+  .hero .glyph{color:var(--crimson);font-size:.5em;letter-spacing:0;margin-left:.35em;vertical-align:middle}
+  .tag{color:var(--dim);font-size:clamp(15px,1.5vw,18px);max-width:34rem;margin:14px 0 0}
+  .chips{display:flex;flex-wrap:wrap;gap:8px;margin:22px 0 0;font-family:var(--mono);font-size:12px}
+  .chip{border:1px solid var(--line);border-radius:20px;padding:6px 12px;color:var(--dim)}
+  .chip b{color:var(--ink)}
+  .chip.warn{border-color:#e5484d55;color:#ff9ba0}
+  .btnrow{display:flex;gap:10px;flex-wrap:wrap;margin-top:24px}
+  .btn{font-family:var(--mono);font-size:13px;border:1px solid var(--crimson);color:var(--crimson);
+    padding:10px 16px;border-radius:8px;transition:.15s}
+  .btn:hover{background:var(--crimson);color:#000}
+  .btn.ghost{border-color:var(--line);color:var(--dim)}
+  .btn.ghost:hover{background:var(--line);color:var(--ink)}
+
+  .stage{position:relative;height:560px;min-width:0;isolation:isolate;cursor:grab;touch-action:pan-y}
+  .stage:active{cursor:grabbing}
+  .stage::after{content:"";position:absolute;inset:14%;z-index:-1;pointer-events:none;
+    background:radial-gradient(circle,rgba(229,72,77,.18),rgba(0,255,136,.04) 44%,transparent 70%);
+    filter:blur(26px)}
+  #fork{position:absolute;inset:0;width:100%;height:100%;display:block;outline:none}
+  .scene-label{position:absolute;z-index:2;padding:7px 10px;border:1px solid #e5484d33;
+    border-radius:7px;background:rgba(10,11,15,.62);backdrop-filter:blur(8px);
+    font:500 9px/1.4 var(--mono);letter-spacing:.11em;color:var(--dim);pointer-events:none}
+  .scene-label b{display:block;font-size:11px;letter-spacing:.14em;margin-bottom:2px;color:var(--ink)}
+  .scene-label.live{left:0;bottom:16%;border-color:#3c465a}
+  .scene-label.live b{color:#aab4c6}
+  .scene-label.fork{right:1%;top:12%}
+  .scene-label.fork b{color:var(--crimson)}
+  .verdict{position:absolute;left:50%;top:4%;transform:translateX(-50%);z-index:2;text-align:center;
+    pointer-events:none;white-space:nowrap}
+  .verdict b{display:block;font:700 15px/1 var(--mono);letter-spacing:.2em;color:var(--green);
+    transition:color .25s}
+  .verdict b[data-tone="bad"]{color:var(--crimson)}
+  .verdict span{display:block;margin-top:5px;font:500 10px/1.3 var(--mono);color:var(--dim)}
+  .hint{position:absolute;left:50%;bottom:2%;transform:translateX(-50%);z-index:2;
+    font:500 9px/1 var(--mono);letter-spacing:.16em;color:rgba(154,163,178,.45);
+    text-transform:uppercase;white-space:nowrap;pointer-events:none}
+
+  /* ── sections ───────────────────────────────────────────────────────────── */
+  section{padding:44px 0;border-top:1px solid var(--line)}
+  h2{font-size:26px;margin:0 0 6px}
+  .lead{color:var(--dim);margin:0 0 22px;max-width:62rem}
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+  @media(max-width:680px){.grid{grid-template-columns:1fr}}
+  .card{background:linear-gradient(180deg,var(--bg2),#0d0e14);border:1px solid var(--line);
+    border-radius:14px;padding:18px;position:relative;overflow:hidden;transition:border-color .2s}
+  .card::before{content:"";position:absolute;inset:0 auto 0 0;width:2px;background:var(--line);transition:.2s}
+  .card:hover{border-color:#e5484d33}
+  .card:hover::before{background:var(--crimson)}
+  .card h3{margin:0 0 6px;font-family:var(--mono);font-size:14px}
+  .card p{margin:0;color:var(--dim);font-size:14px}
+  .k{color:var(--gold)}
+  .held{color:var(--green)}
+  .cycle{display:flex;flex-wrap:wrap;gap:8px;font-family:var(--mono);font-size:12px}
+  .step{flex:1 1 150px;background:#0d0e14;border:1px solid var(--line);border-radius:12px;
+    padding:12px 14px;position:relative}
+  .step i{display:block;font-style:normal;font-size:10px;letter-spacing:.16em;color:var(--crimson);margin-bottom:6px}
+  .step span{color:var(--dim)}
+  .step.ok i{color:var(--green)}
+  .safety{background:#e5484d0d;border:1px solid #e5484d33;border-radius:14px;padding:22px}
+  .safety h2{color:var(--crimson)}
+  .safety .lead{color:#ffb3b6;margin:0}
+  footer{padding:34px 0 60px;color:var(--dim);font-size:13px;text-align:center;border-top:1px solid var(--line)}
+  footer a{color:var(--dim)}
+  .siblings{font-family:var(--mono);font-size:12px;color:#7f8b9e;max-width:56rem;margin:0 auto 18px}
+  .siblings a{color:var(--ink);border-bottom:1px solid var(--line)}
+  .siblings a:hover{border-color:var(--crimson)}
+
+  @media(max-width:900px){
+    .hero{grid-template-columns:1fr;min-height:0;padding-top:26px}
+    .stage{height:min(480px,74vw);min-height:340px;order:-1;margin-bottom:-4px}
+    .scene-label{display:none}
+    /* Narration wraps rather than overflowing: the longest strings are RU and FR. */
+    .verdict{white-space:normal;max-width:88vw}
+  }
+  @media(max-width:600px){
+    .stage{height:380px;margin:0 -8px 10px}
+  }
+  @media(prefers-reduced-motion:reduce){.hint{display:none}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="brand"><span class="mark"></span> DOLOS</div>
+    <div class="langs" id="langs">
+      <button data-lang="en" class="active">EN</button>
+      <button data-lang="ru">RU</button>
+      <button data-lang="es">ES</button>
+      <button data-lang="fr">FR</button>
+      <button data-lang="zh">ZH</button>
+    </div>
+  </header>
+
+  <section class="hero" style="border-top:none">
+    <div>
+      <p class="kicker" data-i18n="kicker"></p>
+      <h1>DOLOS<span class="glyph">Δόλος</span></h1>
+      <p class="tag" data-i18n="tag"></p>
+      <div class="chips">
+        <span class="chip" data-i18n="chip1"></span>
+        <span class="chip warn" data-i18n="chip2"></span>
+        <span class="chip" data-i18n="chip3"></span>
+      </div>
+      <div class="btnrow">
+        <a class="btn" href="https://github.com/alexar76/dolos" data-i18n="cta_code"></a>
+        <a class="btn ghost" href="https://monitor-uni.modelmarket.dev/" data-i18n="cta_node"></a>
+      </div>
+    </div>
+
+    <div class="stage" id="stage">
+      <canvas id="fork" aria-label="Interactive 3D scene: a throwaway fork of the live chain takes every attack"></canvas>
+      <div class="verdict"><b id="verdictWord">FORK</b><span id="verdictDetail"></span></div>
+      <div class="scene-label live"><b data-i18n="lbl_live_h"></b><span data-i18n="lbl_live_p"></span></div>
+      <div class="scene-label fork"><b data-i18n="lbl_fork_h"></b><span data-i18n="lbl_fork_p"></span></div>
+      <p class="hint" data-i18n="hint"></p>
+    </div>
+  </section>
+
+  <section>
+    <h2 data-i18n="safe_h"></h2>
+    <p class="lead" data-i18n="safe_p"></p>
+    <div class="grid">
+      <div class="card"><h3>anvil --fork-url</h3><p data-i18n="safe_c1"></p></div>
+      <div class="card"><h3>evm_snapshot · evm_revert</h3><p data-i18n="safe_c2"></p></div>
+      <div class="card"><h3>anvil_impersonateAccount</h3><p data-i18n="safe_c3"></p></div>
+      <div class="card"><h3>anvil_setBalance</h3><p data-i18n="safe_c4"></p></div>
+    </div>
+  </section>
+
+  <section>
+    <h2 data-i18n="atk_h"></h2>
+    <p class="lead" data-i18n="atk_p"></p>
+    <div class="grid">
+      <div class="card"><h3 class="k">unauthorized_token_mint</h3><p><span class="held">held ✓</span> — <span data-i18n="atk1"></span></p></div>
+      <div class="card"><h3 class="k">escrow_channel_hijack</h3><p><span class="held">held ✓</span> — <span data-i18n="atk2"></span></p></div>
+      <div class="card"><h3 class="k">lottery_operator_bypass</h3><p><span class="held">held ✓</span> — <span data-i18n="atk3"></span></p></div>
+      <div class="card"><h3 class="k">confirm / refute</h3><p data-i18n="atk4"></p></div>
+    </div>
+  </section>
+
+  <section>
+    <h2 data-i18n="fix_h"></h2>
+    <p class="lead" data-i18n="fix_p"></p>
+    <div class="cycle">
+      <div class="step"><i>01 · 02</i><span data-i18n="st1"></span></div>
+      <div class="step"><i>03</i><span data-i18n="st2"></span></div>
+      <div class="step"><i>04</i><span data-i18n="st3"></span></div>
+      <div class="step"><i>05</i><span data-i18n="st4"></span></div>
+      <div class="step ok"><i>06 · 07</i><span data-i18n="st5"></span></div>
+    </div>
+  </section>
+
+  <section style="border:none">
+    <div class="safety">
+      <h2 data-i18n="sb_h"></h2>
+      <p class="lead" data-i18n="sb_p"></p>
+    </div>
+  </section>
+
+  <footer>
+    <p class="siblings" data-i18n="sib"></p>
+    <p data-i18n="foot"></p>
+    <p><a href="https://github.com/alexar76/dolos">GitHub</a> ·
+       <a href="https://github.com/alexar76/dolos#readme">README</a> ·
+       <a href="https://monitor-uni.modelmarket.dev/">Alien Monitor</a> · MIT</p>
+  </footer>
+</div>
+
+<script>
+const I18N = {
+  en:{kicker:"Δόλος · trickery, and a chain you can throw away",
+    tag:"A dynamic EVM attack harness for the UNI bubble. It forks the chain, throws real exploits at the deployed contracts, proves which flaws are real — and on the sandbox chain drives the fix to a re-tested redeploy.",
+    chip1:"<b>capability</b> agent.security.contract-redteam@v1",chip2:"UNI sandbox only",chip3:"<b>findings</b> Ed25519-signed",
+    cta_code:"Source →",cta_node:"See the node →",
+    hint:"drag to orbit · scroll to zoom",
+    lbl_live_h:"LIVE CHAIN",lbl_live_p:"read, never written",
+    lbl_fork_h:"THROWAWAY FORK",lbl_fork_p:"chainId 31337",
+    w_fork:"FORK",w_forkDetail:"a copy-on-write clone of the live chain",
+    w_held:"HELD",w_heldDetail:"the invariant refused the attack — an honest negative",
+    w_exploited:"EXPLOITED",w_exploitedDetail:"the invariant broke — a signed finding",
+    w_fix:"FIXED",w_fixDetail:"guard inserted · forge test still green",
+    w_refused:"REFUSED",w_refusedDetail:"the same attack is now refused",
+    w_gone:"TORN DOWN",w_goneDetail:"none of it ever existed",
+    safe_h:"Why it is safe to attack everything",safe_p:"DOLOS never touches a live chain. It forks it into a throwaway clone and attacks that — so it can do things no real chain would survive.",
+    safe_c1:"A copy-on-write clone of the live state: every contract, balance and slot is there to attack, and vanishes when the fork is torn down.",
+    safe_c2:"Snapshot before each attack, revert after — free and total, because the fork is the disposable thing, not the bubble.",
+    safe_c3:"Transact AS the owner, or as a victim, with no key — the move that makes real exploits reproducible. Impossible on a real chain.",
+    safe_c4:"Fund any address with fake ether for gas. None of it is real; none of it outlives the fork.",
+    atk_h:"An attack is an invariant, not a poke",atk_p:"Each attack is a property the contract claims and a transaction sequence that would break it. On the live UNI contracts, all held:",
+    atk1:"FakeUSDT mints only in its constructor — supply is guarded.",atk2:"the depositor≠0 guard refuses a duplicate channel id.",atk3:"onlyRole(OPERATOR_ROLE) is enforced.",
+    atk4:"The dynamic layer proves BASANOS's static flags: DOLOS refuted the openChannel flag by actually attempting the hijack and being reverted.",
+    fix_h:"The full auto-fix cycle",fix_p:"On the sandbox chain a finding drives a fix to proven closure — no infrastructure redeploy, only the one contract, onto a fork that is thrown away. Proven end-to-end on the DolosCanary:",
+    st1:"deploy the target, then ATTACK until the drain is proven",
+    st2:"FIX — patch the .sol with the built-in patcher or the Factory",
+    st3:"GATE — forge test must still pass, or the fix is rejected",
+    st4:"REDEPLOY the patched contract onto a fresh fork",
+    st5:"RE-ATTACK — the same sequence is refused. Verdict: fixed",
+    sb_h:"The safety boundary",sb_p:"Auto-fix-and-redeploy is allowed only on a fork of a sandbox chain (chainId 31337). On a real, immutable mainnet contract nothing is ever changed automatically: the identical finding there is reported as advisory and stops at the report. That is the whole reason DOLOS lives in UNI.",
+    sib:'DOLOS attacks what is deployed. <a href="https://alexar76.github.io/basanos/">BASANOS</a> reads the source it was built from and signs an assurance pack; <a href="https://github.com/alexar76/momus">MOMUS</a> does the same job for HTTP and federation.',
+    foot:"DOLOS is a security-research red-team tool for your own contracts on a disposable fork. Not for use against systems you do not own. Provided as is, without warranty (MIT)."},
+
+  ru:{kicker:"Δόλος · обман и цепочка, которую не жалко",
+    tag:"Динамический стенд атак на EVM для пузыря UNI. Форкает цепочку, бросает реальные эксплойты в задеплоенные контракты, доказывает, какие изъяны реальны — и на песочной цепочке доводит фикс до повторно протестированного деплоя.",
+    chip1:"<b>capability</b> agent.security.contract-redteam@v1",chip2:"только песочница UNI",chip3:"<b>находки</b> подпись Ed25519",
+    cta_code:"Исходники →",cta_node:"Смотреть узел →",
+    hint:"тяните, чтобы вращать · колесо — масштаб",
+    lbl_live_h:"ЖИВАЯ ЦЕПОЧКА",lbl_live_p:"читаем, никогда не пишем",
+    lbl_fork_h:"ОДНОРАЗОВЫЙ ФОРК",lbl_fork_p:"chainId 31337",
+    w_fork:"ФОРК",w_forkDetail:"copy-on-write-клон живой цепочки",
+    w_held:"УСТОЯЛ",w_heldDetail:"инвариант отбил атаку — честный отрицательный результат",
+    w_exploited:"ПРОБИТ",w_exploitedDetail:"инвариант нарушен — подписанная находка",
+    w_fix:"ИСПРАВЛЕНО",w_fixDetail:"проверка вставлена · forge test по-прежнему зелёный",
+    w_refused:"ОТБИТО",w_refusedDetail:"та же атака теперь отклоняется",
+    w_gone:"УНИЧТОЖЕН",w_goneDetail:"ничего этого не было",
+    safe_h:"Почему безопасно атаковать всё",safe_p:"DOLOS никогда не трогает живую цепочку. Он форкает её в одноразовый клон и атакует его — поэтому может делать то, что реальная цепочка не пережила бы.",
+    safe_c1:"Copy-on-write-клон живого состояния: каждый контракт, баланс и слот доступен для атаки и исчезает вместе с форком.",
+    safe_c2:"Снапшот перед каждой атакой, откат после — бесплатно и полностью, ведь одноразовый именно форк, а не пузырь.",
+    safe_c3:"Транзакции ОТ ИМЕНИ владельца или жертвы без ключа — то, что делает эксплойты воспроизводимыми. На реальной цепочке невозможно.",
+    safe_c4:"Пополните любой адрес фейковым эфиром на газ. Ничего из этого не реально и не переживёт форк.",
+    atk_h:"Атака — это инвариант, а не тык",atk_p:"Каждая атака — свойство, которое заявляет контракт, и последовательность транзакций, которая его нарушила бы. На живых контрактах UNI все устояли:",
+    atk1:"FakeUSDT минтит только в конструкторе — предложение под защитой.",atk2:"защита depositor≠0 отвергает дубликат id канала.",atk3:"onlyRole(OPERATOR_ROLE) действует.",
+    atk4:"Динамика доказывает статические флаги BASANOS: DOLOS опроверг флаг openChannel, реально попытавшись захватить канал и получив revert.",
+    fix_h:"Полный цикл автоисправления",fix_p:"На песочной цепочке находка доводит фикс до доказанного закрытия — без передеплоя инфраструктуры, только один контракт, на выбрасываемый форк. Доказано от начала до конца на DolosCanary:",
+    st1:"задеплоить цель и АТАКОВАТЬ, пока слив не доказан",
+    st2:"ФИКС — пропатчить .sol встроенным патчером или через Factory",
+    st3:"ГЕЙТ — forge test должен остаться зелёным, иначе фикс отклонён",
+    st4:"ПЕРЕДЕПЛОЙ исправленного контракта на свежий форк",
+    st5:"ПОВТОРНАЯ АТАКА — та же последовательность отбита. Вердикт: fixed",
+    sb_h:"Граница безопасности",sb_p:"Авто-фикс с редеплоем разрешён только на форке песочной цепочки (chainId 31337). С реальным неизменяемым контрактом mainnet автоматически не делается ничего: идентичная находка там имеет исключительно рекомендательный характер и дальше отчёта не идёт. Ради этого DOLOS и живёт в UNI.",
+    sib:'DOLOS атакует то, что задеплоено. <a href="https://alexar76.github.io/basanos/">BASANOS</a> читает исходники, из которых это собрано, и подписывает пакет гарантий; <a href="https://github.com/alexar76/momus">MOMUS</a> делает то же самое для HTTP и федерации.',
+    foot:"DOLOS — инструмент исследования безопасности (red team) для ваших собственных контрактов на одноразовом форке. Не для использования против систем, которыми вы не владеете. Предоставляется «как есть», без гарантий (MIT)."},
+
+  es:{kicker:"Δόλος · el engaño, y una cadena que puedes tirar",
+    tag:"Un banco de ataque dinámico de EVM para la burbuja UNI. Forkea la cadena, lanza exploits reales contra los contratos desplegados, prueba qué fallos son reales — y en la cadena sandbox lleva la corrección a un redespliegue re-probado.",
+    chip1:"<b>capability</b> agent.security.contract-redteam@v1",chip2:"solo sandbox UNI",chip3:"<b>hallazgos</b> firmados Ed25519",
+    cta_code:"Código →",cta_node:"Ver el nodo →",
+    hint:"arrastra para orbitar · rueda para acercar",
+    lbl_live_h:"CADENA EN VIVO",lbl_live_p:"se lee, nunca se escribe",
+    lbl_fork_h:"FORK DESECHABLE",lbl_fork_p:"chainId 31337",
+    w_fork:"FORK",w_forkDetail:"un clon copy-on-write de la cadena en vivo",
+    w_held:"RESISTIÓ",w_heldDetail:"el invariante rechazó el ataque — un negativo honesto",
+    w_exploited:"VULNERADO",w_exploitedDetail:"el invariante se rompió — un hallazgo firmado",
+    w_fix:"CORREGIDO",w_fixDetail:"guarda insertada · forge test sigue en verde",
+    w_refused:"RECHAZADO",w_refusedDetail:"el mismo ataque ahora se rechaza",
+    w_gone:"DESTRUIDO",w_goneDetail:"nada de esto ocurrió",
+    safe_h:"Por qué es seguro atacarlo todo",safe_p:"DOLOS nunca toca una cadena en vivo. La forkea en un clon desechable y ataca eso — así puede hacer lo que una cadena real no sobreviviría.",
+    safe_c1:"Un clon copy-on-write del estado en vivo: cada contrato, saldo y slot está para atacar, y desaparece al destruir el fork.",
+    safe_c2:"Snapshot antes de cada ataque, revert después — gratis y total, porque lo desechable es el fork, no la burbuja.",
+    safe_c3:"Transacciona COMO el dueño, o como víctima, sin clave — lo que hace los exploits reproducibles. Imposible en una cadena real.",
+    safe_c4:"Financia cualquier dirección con éter falso para gas. Nada es real; nada sobrevive al fork.",
+    atk_h:"Un ataque es un invariante, no un toque",atk_p:"Cada ataque es una propiedad que el contrato afirma y una secuencia que la rompería. En los contratos UNI en vivo, todos resistieron:",
+    atk1:"FakeUSDT solo hace mint en su constructor — el suministro está protegido.",atk2:"la guarda depositor≠0 rechaza un id de canal duplicado.",atk3:"onlyRole(OPERATOR_ROLE) se aplica.",
+    atk4:"La capa dinámica prueba las marcas estáticas de BASANOS: DOLOS refutó la marca de openChannel intentando el secuestro y siendo revertido.",
+    fix_h:"El ciclo completo de auto-corrección",fix_p:"En la cadena sandbox un hallazgo lleva una corrección a un cierre probado — sin redespliegue de infraestructura, solo el contrato, sobre un fork desechable. Probado de extremo a extremo en el DolosCanary:",
+    st1:"desplegar el objetivo y ATACAR hasta probar el drenaje",
+    st2:"CORREGIR — parchear el .sol con el parcheador integrado o la Factory",
+    st3:"PUERTA — forge test debe seguir pasando, o la corrección se rechaza",
+    st4:"REDESPLEGAR el contrato corregido en un fork nuevo",
+    st5:"RE-ATAQUE — la misma secuencia se rechaza. Veredicto: fixed",
+    sb_h:"El límite de seguridad",sb_p:"La auto-corrección con redespliegue solo se permite en un fork de una cadena sandbox (chainId 31337). Sobre un contrato mainnet real e inmutable no se hace nada de forma automática: allí el hallazgo idéntico se informa como solo consultivo y no pasa del informe. Esa es la razón de que DOLOS viva en UNI.",
+    sib:'DOLOS ataca lo que está desplegado. <a href="https://alexar76.github.io/basanos/">BASANOS</a> lee el código del que se construyó y firma un paquete de garantía; <a href="https://github.com/alexar76/momus">MOMUS</a> hace lo mismo para HTTP y federación.',
+    foot:"DOLOS es una herramienta de equipo rojo para investigación de seguridad, para tus propios contratos en un fork desechable. No para usar contra sistemas que no posees. Se ofrece tal cual, sin garantía (MIT)."},
+
+  fr:{kicker:"Δόλος · la ruse, et une chaîne qu'on peut jeter",
+    tag:"Un banc d'attaque EVM dynamique pour la bulle UNI. Il forke la chaîne, lance de vrais exploits contre les contrats déployés, prouve quels défauts sont réels — et sur la chaîne sandbox mène la correction jusqu'à un redéploiement re-testé.",
+    chip1:"<b>capability</b> agent.security.contract-redteam@v1",chip2:"sandbox UNI uniquement",chip3:"<b>constats</b> signés Ed25519",
+    cta_code:"Code →",cta_node:"Voir le nœud →",
+    hint:"glissez pour orbiter · molette pour zoomer",
+    lbl_live_h:"CHAÎNE EN PRODUCTION",lbl_live_p:"lue, jamais écrite",
+    lbl_fork_h:"FORK JETABLE",lbl_fork_p:"chainId 31337",
+    w_fork:"FORK",w_forkDetail:"un clone copy-on-write de la chaîne en production",
+    w_held:"A TENU",w_heldDetail:"l'invariant a refusé l'attaque — un négatif honnête",
+    w_exploited:"PERCÉ",w_exploitedDetail:"l'invariant a été rompu — un constat signé",
+    w_fix:"CORRIGÉ",w_fixDetail:"garde insérée · forge test toujours au vert",
+    w_refused:"REFUSÉ",w_refusedDetail:"la même attaque est désormais refusée",
+    w_gone:"DÉTRUIT",w_goneDetail:"rien de tout cela n'a eu lieu",
+    safe_h:"Pourquoi tout attaquer est sûr",safe_p:"DOLOS ne touche jamais une chaîne en production. Il la forke en un clone jetable et attaque celui-ci — il peut donc faire ce qu'une vraie chaîne ne survivrait pas.",
+    safe_c1:"Un clone copy-on-write de l'état en production : chaque contrat, solde et slot est là pour être attaqué, et disparaît quand le fork est détruit.",
+    safe_c2:"Snapshot avant chaque attaque, revert après — gratuit et total, car le jetable c'est le fork, pas la bulle.",
+    safe_c3:"Transiger EN TANT QUE propriétaire, ou victime, sans clé — ce qui rend les exploits reproductibles. Impossible sur une vraie chaîne.",
+    safe_c4:"Approvisionnez n'importe quelle adresse en faux éther pour le gaz. Rien n'est réel ; rien ne survit au fork.",
+    atk_h:"Une attaque est un invariant, pas un test",atk_p:"Chaque attaque est une propriété que le contrat affirme et une séquence qui la briserait. Sur les contrats UNI en production, tous ont tenu :",
+    atk1:"FakeUSDT ne mint que dans son constructeur — l'offre est protégée.",atk2:"la garde depositor≠0 refuse un id de canal dupliqué.",atk3:"onlyRole(OPERATOR_ROLE) est appliqué.",
+    atk4:"La couche dynamique prouve les signalements statiques de BASANOS : DOLOS a réfuté celui d'openChannel en tentant réellement le détournement et en étant annulé.",
+    fix_h:"Le cycle complet d'auto-correction",fix_p:"Sur la chaîne sandbox, un constat mène une correction jusqu'à une clôture prouvée — sans redéploiement d'infrastructure, seulement le contrat, sur un fork jetable. Prouvé de bout en bout sur le DolosCanary :",
+    st1:"déployer la cible, puis ATTAQUER jusqu'à prouver le siphonnage",
+    st2:"CORRIGER — patcher le .sol avec le correcteur intégré ou la Factory",
+    st3:"PORTE — forge test doit rester au vert, sinon la correction est rejetée",
+    st4:"REDÉPLOYER le contrat corrigé sur un fork neuf",
+    st5:"RE-ATTAQUE — la même séquence est refusée. Verdict : fixed",
+    sb_h:"La limite de sécurité",sb_p:"L'auto-correction avec redéploiement n'est autorisée que sur un fork d'une chaîne sandbox (chainId 31337). Sur un contrat mainnet réel et immuable, rien n'est jamais modifié automatiquement : le constat identique y est signalé à titre consultatif uniquement et ne va pas plus loin que le rapport. C'est toute la raison pour laquelle DOLOS vit dans UNI.",
+    sib:'DOLOS attaque ce qui est déployé. <a href="https://alexar76.github.io/basanos/">BASANOS</a> lit le code dont il est issu et signe un dossier d\'assurance ; <a href="https://github.com/alexar76/momus">MOMUS</a> fait de même pour HTTP et la fédération.',
+    foot:"DOLOS est un outil d'équipe rouge pour la recherche en sécurité, pour vos propres contrats sur un fork jetable. Pas pour une utilisation contre des systèmes que vous ne possédez pas. Fourni tel quel, sans garantie (MIT)."},
+
+  zh:{kicker:"Δόλος · 诡计，以及一条可以丢弃的链",
+    tag:"面向 UNI 气泡的动态 EVM 攻击平台。它分叉链，向已部署合约发起真实漏洞利用，证明哪些缺陷真实存在——并在沙盒链上把修复推进到重新测试后的重新部署。",
+    chip1:"<b>capability</b> agent.security.contract-redteam@v1",chip2:"仅限 UNI 沙盒",chip3:"<b>发现</b> Ed25519 签名",
+    cta_code:"源码 →",cta_node:"查看节点 →",
+    hint:"拖动旋转 · 滚轮缩放",
+    lbl_live_h:"实时链",lbl_live_p:"只读，绝不写入",
+    lbl_fork_h:"一次性分叉",lbl_fork_p:"chainId 31337",
+    w_fork:"分叉",w_forkDetail:"实时链的写时复制副本",
+    w_held:"守住",w_heldDetail:"不变量拒绝了攻击——诚实的否定结果",
+    w_exploited:"被攻破",w_exploitedDetail:"不变量被打破——一个已签名的发现",
+    w_fix:"已修复",w_fixDetail:"已插入守卫 · forge test 仍然通过",
+    w_refused:"已拒绝",w_refusedDetail:"同一次攻击如今被拒绝",
+    w_gone:"已销毁",w_goneDetail:"这一切从未发生",
+    safe_h:"为何攻击一切都安全",safe_p:"DOLOS 从不触碰实时链。它把链分叉成一个一次性副本并攻击那个副本——因此可以做真实链无法承受的事。",
+    safe_c1:"实时状态的写时复制副本：每个合约、余额和存储槽都可供攻击，并随分叉销毁而消失。",
+    safe_c2:"每次攻击前快照、之后回滚——免费且彻底，因为一次性的是分叉，而非气泡。",
+    safe_c3:"无需私钥即可以所有者或受害者的身份交易——这让漏洞可复现。在真实链上不可能。",
+    safe_c4:"用假以太为任意地址充值作 gas。一切都不真实，也都不会比分叉活得更久。",
+    atk_h:"攻击是不变量，而非乱点",atk_p:"每个攻击都是合约声称的属性，以及会打破它的交易序列。在实时 UNI 合约上，全部守住：",
+    atk1:"FakeUSDT 仅在构造函数中铸币——供应受保护。",atk2:"depositor≠0 守卫拒绝重复的通道 id。",atk3:"onlyRole(OPERATOR_ROLE) 得到强制执行。",
+    atk4:"动态层验证 BASANOS 的静态标记：DOLOS 通过真的尝试劫持并被回滚，反驳了 openChannel 标记。",
+    fix_h:"完整的自动修复闭环",fix_p:"在沙盒链上，一个发现把修复推进到已证明的封堵——不重新部署基础设施，只有那一个合约，部署到一个被丢弃的分叉。已在 DolosCanary 上端到端证明：",
+    st1:"部署目标合约，然后持续攻击直到证明可被抽干",
+    st2:"修复 —— 用内置补丁器或 Factory 修补 .sol",
+    st3:"闸门 —— forge test 必须仍然通过，否则驳回该修复",
+    st4:"把修补后的合约重新部署到一个新分叉",
+    st5:"再次攻击 —— 同一条序列被拒绝。裁定：fixed",
+    sb_h:"安全边界",sb_p:"自动修复与重新部署仅允许在沙盒链的分叉上（chainId 31337）。对一个真实且不可变的主网合约，系统绝不做任何自动改动：同样的发现在那里仅作建议，并止步于报告。这正是 DOLOS 生活在 UNI 的全部原因。",
+    sib:'DOLOS 攻击已经部署的东西。<a href="https://alexar76.github.io/basanos/">BASANOS</a> 阅读它所构建自的源码并签署一份保障包；<a href="https://github.com/alexar76/momus">MOMUS</a> 为 HTTP 与联邦做同样的事。',
+    foot:"DOLOS 是一款用于安全研究的红队工具，针对你自己的合约在一次性分叉上运行。不得用于攻击你并不拥有的系统。按「原样」提供，不作担保（MIT）。"},
+};
+
+const SCENE_KEYS = ["fork","forkDetail","held","heldDetail","exploited","exploitedDetail",
+                    "fix","fixDetail","refused","refusedDetail","gone","goneDetail"];
+
+let scene = null;
+
+function words(dict){
+  const out = {};
+  SCENE_KEYS.forEach(k => { const v = dict["w_" + k]; if (v != null) out[k] = v; });
+  return out;
+}
+
+function apply(lang){
+  const d = I18N[lang] || I18N.en;
+  document.documentElement.lang = lang;
+  document.querySelectorAll("[data-i18n]").forEach(el => {
+    const k = el.getAttribute("data-i18n");
+    if (d[k] != null) el.innerHTML = d[k];
+  });
+  document.querySelectorAll("#langs button")
+    .forEach(b => b.classList.toggle("active", b.dataset.lang === lang));
+  // The module script mounts after this classic script runs, so the vocabulary is also parked
+  // on window for the initial mount — otherwise the first pass would narrate in English.
+  window.__dolosWords = words(d);
+  if (scene) scene.setWords(window.__dolosWords);
+  try { localStorage.setItem("dolos_lang", lang); } catch (e) {}
+}
+
+document.getElementById("langs").addEventListener("click", e => {
+  const b = e.target.closest("button");
+  if (b) apply(b.dataset.lang);
+});
+
+let initial = "en";
+try { const s = localStorage.getItem("dolos_lang"); if (s && I18N[s]) initial = s; } catch (e) {}
+if (initial === "en") { const n = (navigator.language || "").slice(0, 2); if (I18N[n]) initial = n; }
+window.__dolosLang = initial;
+apply(initial);
+</script>
+
+<script type="module">
+import { mountForkScene } from "./fork.js";
+
+// The scene narrates itself through the HUD, so it needs the current language's vocabulary.
+try {
+  scene = mountForkScene(document.getElementById("fork"), {
+    hud: {
+      verdict: document.getElementById("verdictWord"),
+      detail: document.getElementById("verdictDetail"),
+    },
+    words: (window.__dolosWords || {}),
+  });
+  window.dispatchEvent(new Event("dolos:scene-ready"));
+} catch (err) {
+  console.warn("[dolos-fork]", err);
+  document.getElementById("stage")?.classList.add("failed");
+}
+</script>
+</body>
+</html>
