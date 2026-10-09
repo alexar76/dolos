@@ -1,0 +1,54 @@
+# One DOLOS scan cycle. Driven by dolos-scan.timer — Type=oneshot on purpose.
+#
+# WHY A TIMER + ONESHOT RATHER THAN A LONG-LIVED `dolos watch`
+# ------------------------------------------------------------
+# Each cycle forks a chain: it spawns an `anvil` child, drives it, and tears it down. A fresh
+# process per cycle means a leaked fork, a wedged anvil or an OOM costs exactly one cycle — systemd
+# reaps the whole cgroup and the next tick starts clean. A long-lived watcher would carry that
+# damage forward, and the artifact would keep serving its last green verdict while the process was
+# already sick. (`dolos watch` still exists for a laptop or a container without a timer.)
+#
+# Install:  see install-timer.sh in this directory.
+[Unit]
+Description=DOLOS — one contract red-team scan of the UNI bubble
+Documentation=https://github.com/alexar76/dolos
+# Do not fail the unit when the chain is simply not up; the timer will try again.
+After=network-online.target
+
+[Service]
+Type=oneshot
+User=%i
+WorkingDirectory=/opt/dolos
+
+# The live chain to FORK. DOLOS never writes to it — it clones it and attacks the clone.
+Environment=DOLOS_FORK_URL=http://127.0.0.1:8545
+# The artifact the Alien Monitor's DOLOS node reads. Must be a path the monitor can see.
+Environment=DOLOS_LAST_SCAN_PATH=/var/lib/alien-monitor/universe/dolos_last_scan.json
+# Attack memory: reorders the catalog so a cycle spends its budget where the yield has been.
+# It never changes a verdict and never drops an attack (dolos/memos.py).
+Environment=DOLOS_MEMO_PATH=/var/lib/dolos/attack_memos.jsonl
+# Findings are unsigned without this, which means readable but not pipeline-payable.
+Environment=DOLOS_SIGNING_KEY_PATH=/var/lib/dolos/scanner_key
+Environment=AICOM_ROOT=/opt/aicom
+
+ExecStart=/opt/dolos/.venv/bin/python -m dolos scan
+
+# Exit 1 means a real, non-by-design exploit was found. That is a FINDING, not a unit failure —
+# the artifact and the journal carry it, and a red unit would train the operator to ignore red.
+SuccessExitStatus=0 1
+# Exit 2 is "could not run" (no anvil, no fork). Left as a failure on purpose: an unreachable chain
+# is an operational problem, and it should show up as one rather than as a quiet clean scan.
+
+TimeoutStartSec=900
+Restart=no
+
+# Hardening: it needs to spawn anvil and write two paths, and nothing else.
+NoNewPrivileges=yes
+PrivateTmp=yes
+ProtectSystem=strict
+ProtectHome=yes
+ReadWritePaths=/var/lib/dolos /var/lib/alien-monitor/universe
+StateDirectory=dolos
+
+[Install]
+WantedBy=multi-user.target

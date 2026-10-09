@@ -1,0 +1,196 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 400" width="1200" height="400"
+     role="img" aria-label="DOLOS — the live chain is never touched; a throwaway fork of it takes every attack">
+  <title>DOLOS — attack anything, risk nothing</title>
+  <desc>The live chain runs on, untouched. DOLOS forks it into a disposable clone and throws real
+  exploits at that: invariants that hold are honest negatives, one that breaks is a signed finding,
+  and the fork is torn down.</desc>
+
+  <defs>
+    <linearGradient id="sky" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#12070a"/>
+      <stop offset="0.55" stop-color="#0a0b0f"/>
+      <stop offset="1" stop-color="#07080c"/>
+    </linearGradient>
+    <radialGradient id="ember" cx="0.74" cy="0.12" r="0.7">
+      <stop offset="0" stop-color="#e5484d" stop-opacity="0.26"/>
+      <stop offset="0.55" stop-color="#e5484d" stop-opacity="0.05"/>
+      <stop offset="1" stop-color="#e5484d" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="live" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#2a3040"/>
+      <stop offset="1" stop-color="#161a24"/>
+    </linearGradient>
+    <linearGradient id="ghost" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#3a1c22"/>
+      <stop offset="1" stop-color="#1a0e12"/>
+    </linearGradient>
+    <linearGradient id="wordmark" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#ffffff"/>
+      <stop offset="0.62" stop-color="#ffb3b6"/>
+      <stop offset="1" stop-color="#e5484d"/>
+    </linearGradient>
+    <filter id="soft" x="-40%" y="-40%" width="180%" height="180%">
+      <feGaussianBlur stdDeviation="7"/>
+    </filter>
+    <filter id="tight" x="-60%" y="-60%" width="220%" height="220%">
+      <feGaussianBlur stdDeviation="2.4"/>
+    </filter>
+    <marker id="tip" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7"
+            orient="auto-start-reverse">
+      <path d="M0 0 L10 5 L0 10 z" fill="#e5484d"/>
+    </marker>
+    <marker id="tipdim" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6"
+            orient="auto-start-reverse">
+      <path d="M0 0 L10 5 L0 10 z" fill="#6b7280"/>
+    </marker>
+  </defs>
+
+  <rect width="1200" height="400" fill="url(#sky)"/>
+  <rect width="1200" height="400" fill="url(#ember)"/>
+
+  <!-- ── wordmark ─────────────────────────────────────────────────────────────────── -->
+  <g transform="translate(56 74)">
+    <!-- the mark: a solid block cleaved by a hairline, the harness's whole trick in one glyph -->
+    <rect x="0" y="-30" width="38" height="38" rx="9" fill="#e5484d" opacity="0.92"/>
+    <path d="M4 8 L38 -30" stroke="#0a0b0f" stroke-width="5" fill="none"/>
+    <text x="56" y="4" font-family="Inter, Helvetica Neue, Arial, sans-serif" font-size="46"
+          font-weight="800" letter-spacing="1.5" fill="url(#wordmark)">DOLOS</text>
+    <text x="248" y="2" font-family="Georgia, Times New Roman, serif" font-size="30"
+          fill="#e5484d" opacity="0.85">Δόλος</text>
+    <text x="2" y="36" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="14"
+          letter-spacing="2.6" fill="#8f9aab">THE&#160;EXPLOIT&#160;CRAFTER</text>
+    <text x="2" y="62" font-family="Inter, Helvetica Neue, Arial, sans-serif" font-size="16"
+          fill="#c9cfda">Attack anything. Risk nothing.</text>
+  </g>
+
+  <!-- ── the live chain: untouched ─────────────────────────────────────────────────── -->
+  <g transform="translate(56 214)">
+    <text x="0" y="-16" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="11"
+          letter-spacing="2.2" fill="#7f8b9e">LIVE CHAIN · NEVER TOUCHED</text>
+    <g stroke="#2f394a" stroke-width="2">
+      <line x1="52" y1="26" x2="86" y2="26"/>
+      <line x1="138" y1="26" x2="172" y2="26"/>
+      <line x1="224" y1="26" x2="258" y2="26"/>
+    </g>
+    <g fill="url(#live)" stroke="#3c465a" stroke-width="1.5">
+      <rect x="0" y="4" width="52" height="44" rx="7"/>
+      <rect x="86" y="4" width="52" height="44" rx="7"/>
+      <rect x="172" y="4" width="52" height="44" rx="7"/>
+      <rect x="258" y="4" width="52" height="44" rx="7"/>
+    </g>
+    <g font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="10" fill="#7f8b9e"
+       text-anchor="middle">
+      <text x="26" y="31">n-3</text>
+      <text x="112" y="31">n-2</text>
+      <text x="198" y="31">n-1</text>
+      <text x="284" y="31">n</text>
+    </g>
+    <g font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="10" fill="#5b6678">
+      <text x="0" y="74">the bubble's SHARED Anvil: the lottery relayer</text>
+      <text x="0" y="90">and the ACEX trader transact on it continuously,</text>
+      <text x="0" y="106">so a revert here would discard their real activity</text>
+    </g>
+  </g>
+
+  <!-- ── the fork: copy-on-write, disposable ──────────────────────────────────────── -->
+  <path d="M368 240 C 424 240, 420 126, 486 126" fill="none" stroke="#e5484d" stroke-width="2"
+        stroke-dasharray="7 5" opacity="0.8" marker-end="url(#tip)"/>
+  <text x="392" y="196" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="10"
+        letter-spacing="1.6" fill="#ff9ba0" opacity="0.9">anvil --fork-url</text>
+
+  <g transform="translate(500 54)">
+    <rect x="-14" y="-6" width="580" height="296" rx="18" fill="#e5484d" opacity="0.045"/>
+    <rect x="-14" y="-6" width="580" height="296" rx="18" fill="none" stroke="#e5484d"
+          stroke-opacity="0.4" stroke-width="1.5" stroke-dasharray="4 6"/>
+    <text x="4" y="18" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="11"
+          letter-spacing="2" fill="#ff9ba0">THROWAWAY FORK · chainId 31337</text>
+
+    <!-- forked blocks under attack -->
+    <g transform="translate(0 74)">
+      <!-- the breach glow sits behind the block that gave way -->
+      <g filter="url(#soft)" opacity="0.55">
+        <circle cx="112" cy="26" r="30" fill="#e5484d"/>
+      </g>
+
+      <g stroke="#5a2c33" stroke-width="2">
+        <line x1="52" y1="26" x2="86" y2="26"/>
+        <line x1="138" y1="26" x2="172" y2="26"/>
+        <line x1="224" y1="26" x2="258" y2="26"/>
+      </g>
+      <g fill="url(#ghost)" stroke="#7a3540" stroke-width="1.5">
+        <rect x="0" y="4" width="52" height="44" rx="7"/>
+        <rect x="86" y="4" width="52" height="44" rx="7"/>
+        <rect x="172" y="4" width="52" height="44" rx="7"/>
+        <rect x="258" y="4" width="52" height="44" rx="7"/>
+      </g>
+      <g font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="9" fill="#c98d94"
+         text-anchor="middle">
+        <text x="26" y="31">USDT</text>
+        <text x="112" y="31">ESCROW</text>
+        <text x="198" y="31">LOTTERY</text>
+        <text x="284" y="31">…</text>
+      </g>
+
+      <!-- two invariants hold, one breaks: the only three things an attack may say -->
+      <g stroke-width="3" stroke-linecap="round" fill="none">
+        <path d="M26 -18 L26 0" stroke="#00ff88"/>
+        <path d="M198 -18 L198 0" stroke="#00ff88"/>
+        <path d="M112 -18 L112 30" stroke="#e5484d"/>
+      </g>
+      <g filter="url(#tight)">
+        <circle cx="26" cy="2" r="6" fill="#00ff88" opacity="0.8"/>
+        <circle cx="198" cy="2" r="6" fill="#00ff88" opacity="0.8"/>
+        <circle cx="112" cy="30" r="8" fill="#ff5a5f" opacity="0.9"/>
+      </g>
+      <g font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="9"
+         text-anchor="middle">
+        <text x="26" y="-26" fill="#00ff88">held ✓</text>
+        <text x="198" y="-26" fill="#00ff88">held ✓</text>
+        <text x="112" y="-26" fill="#ff6b70">exploited</text>
+      </g>
+
+      <text x="332" y="31" font-family="ui-monospace, SFMono-Regular, Menlo, monospace"
+            font-size="14" fill="#7a3540">✕</text>
+      <text x="352" y="31" font-family="ui-monospace, SFMono-Regular, Menlo, monospace"
+            font-size="10" fill="#8a5a60">torn down — none of it happened</text>
+    </g>
+
+    <!-- the cycle a sandbox finding drives -->
+    <g transform="translate(0 172)" font-family="ui-monospace, SFMono-Regular, Menlo, monospace"
+       font-size="10.5">
+      <text x="4" y="0" letter-spacing="1.8" fill="#7f8b9e">ON THE SANDBOX, A FINDING DRIVES</text>
+      <g transform="translate(4 20)">
+        <g fill="none" stroke="#6b7280" stroke-width="1.4" marker-end="url(#tipdim)" opacity="0.8">
+          <line x1="46" y1="10" x2="68" y2="10"/>
+          <line x1="103" y1="10" x2="125" y2="10"/>
+          <line x1="204" y1="10" x2="226" y2="10"/>
+          <line x1="292" y1="10" x2="314" y2="10"/>
+        </g>
+        <g fill="#c9cfda">
+          <text x="0" y="14">ATTACK</text>
+          <text x="76" y="14">FIX</text>
+          <text x="133" y="14">forge test</text>
+          <text x="234" y="14">REDEPLOY</text>
+          <text x="322" y="14" fill="#00ff88">RE-ATTACK refused</text>
+        </g>
+      </g>
+      <text x="4" y="76" fill="#8a94a6">
+        On a real, immutable mainnet contract nothing is ever changed automatically —
+      </text>
+      <text x="4" y="94" fill="#8a94a6">
+        the identical finding there is reported as advisory and stops at the report.
+      </text>
+    </g>
+  </g>
+
+  <!-- ── footer chips ─────────────────────────────────────────────────────────────── -->
+  <g transform="translate(56 352)" font-family="ui-monospace, SFMono-Regular, Menlo, monospace"
+     font-size="10.5">
+    <g fill="none" stroke="#232634">
+      <rect x="0" y="0" width="286" height="26" rx="13"/>
+      <rect x="298" y="0" width="150" height="26" rx="13"/>
+    </g>
+    <text x="16" y="17" fill="#8f9aab">agent.security.contract-redteam@v1</text>
+    <text x="314" y="17" fill="#8f9aab">Ed25519-signed findings</text>
+  </g>
+</svg>

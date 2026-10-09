@@ -1,0 +1,21 @@
+# Runs dolos-scan.service on a schedule. This unit is the thing that makes DOLOS an AUDITOR
+# rather than a command: before it existed nothing in the tree scheduled a contract scan, so the
+# monitor node showed whatever the last hand-run had left behind.
+[Unit]
+Description=Periodic DOLOS contract scan of the UNI bubble
+Documentation=https://github.com/alexar76/dolos
+
+[Timer]
+# Hourly, at a random offset inside the hour. The offset matters: a fixed :00 would put every
+# ecosystem timer on the same tick and the fork would compete with whatever else wakes up then.
+OnCalendar=hourly
+RandomizedDelaySec=900
+# Run a missed cycle on boot instead of waiting for the next hour — otherwise a host that was down
+# overnight comes back with a silent gap in its audit history.
+Persistent=yes
+# One cycle at a time, always. Two concurrent scans would each fork the chain and race for the
+# same artifact path, and the last writer would win.
+AccuracySec=1min
+
+[Install]
+WantedBy=timers.target
