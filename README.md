@@ -17,7 +17,6 @@
 
 <!-- aicom-readme-badges -->
 <p align="center">
-  <a href="https://github.com/alexar76/dolos/actions/workflows/ci.yml"><img src="https://raw.githubusercontent.com/alexar76/dolos/refs/heads/main/docs/badges/ci.svg" alt="CI" /></a>
   <a href="https://dolos.modelmarket.dev/"><img src="https://raw.githubusercontent.com/alexar76/dolos/refs/heads/main/docs/badges/hub.svg" alt="Hub landing" /></a>
   <a href="https://alexar76.github.io/dolos/"><img src="https://raw.githubusercontent.com/alexar76/dolos/refs/heads/main/docs/badges/landing.svg" alt="Landing" /></a>
   <img src="https://img.shields.io/badge/python-%3E%3D3.11-3776AB" alt="Python >=3.11" />
