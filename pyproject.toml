@@ -9,13 +9,13 @@ description = "DOLOS — dynamic EVM attack harness for the UNI bubble (fork-iso
 readme = "README.md"
 requires-python = ">=3.11"
 license = { text = "MIT" }
-dependencies = ["web3>=6", "eth-account>=0.11"]
+dependencies = ["web3>=7.15.0,<8", "eth-account>=0.11"]
 
 [project.optional-dependencies]
 # oracle-core gives the ecosystem's canonical Ed25519 Signer; without it DOLOS uses a
 # cryptography-backed local signer with the same public API.
-signing = ["cryptography>=41"]
-dev = ["pytest>=8", "pytest-cov>=5", "cryptography>=41", "ruff>=0.12,<1"]
+signing = ["cryptography>=50.0.2"]
+dev = ["pytest>=8", "pytest-cov>=5", "cryptography>=50.0.2", "ruff>=0.12,<1"]
 
 [project.urls]
 Documentation = "https://github.com/alexar76/dolos#readme"
